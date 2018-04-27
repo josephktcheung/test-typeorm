@@ -1,28 +1,41 @@
 import 'reflect-metadata';
-import { createConnection } from 'typeorm'
+import { createConnection, Connection } from 'typeorm'
 import { Category } from './entity/Category';
 
-createConnection().then(async connection => {
-  let categoryRepository = connection.getRepository(Category);
+const cleanUp = async () => {
+  const connection = await createConnection();
+  await connection.dropDatabase();
+  await connection.close();
+};
 
-  const category1 = new Category();
-  category1.name = 'category #1';
-  const mainCategory = new Category();
+const run = async () => {
+  const connection = await createConnection();
 
-  mainCategory.name = 'main category';
-  mainCategory.parent = category1;
+  const categoryRepository = connection.getRepository(Category);
 
-  await categoryRepository.save(mainCategory);
+  const categoryParent = new Category();
+  categoryParent.name = 'category parent';
 
-  const categories = categoryRepository.find();
+  await categoryRepository.save(categoryParent);
+  const categoryChild = new Category();
+
+  categoryChild.name = 'category children';
+  categoryChild.parent = categoryParent;
+
+  await categoryRepository.save(categoryChild);
+
   let promises = [];
+
   connection.entityMetadatas.forEach(entityMetadata => {
     entityMetadata.relations.forEach(relation => {
-      promises.push(connection.relationIdLoader.loadManyToManyRelationIdsAndGroup(relation, categories));
+      promises.push(connection.relationIdLoader.loadManyToManyRelationIdsAndGroup(relation, [categoryParent]));
     })
   });
-  const result = await Promise.all(promises);
-  console.log(JSON.stringify(result, null, 2));
 
-  await connection.dropDatabase();
-});
+  const result = await Promise.all(promises);
+
+  const related = result.map(groups => groups.map(group => group.related));
+  console.log('relationIdLoader result: ', JSON.stringify(result, null, 2), 'related: ', related);
+}
+
+cleanUp().then(run);
