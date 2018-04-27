@@ -5,6 +5,7 @@
   "port": 5432,
   "synchronize": true,
   "logging": true,
+  "schema": "test",
   "entities": [
     "src/entity/**/*.ts"
   ],

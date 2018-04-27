@@ -9,7 +9,7 @@
   "dependencies": {
     "pg": "^7.4.1",
     "reflect-metadata": "^0.1.12",
-    "typeorm": "^0.2.0"
+    "typeorm": "^0.2.3"
   },
   "devDependencies": {
     "ts-node": "^6.0.0",
