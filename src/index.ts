@@ -1,19 +1,28 @@
 import 'reflect-metadata';
 import { createConnection } from 'typeorm'
-import { Post } from "./entity/Post";
+import { Category } from './entity/Category';
 
 createConnection().then(async connection => {
-  const post = new Post();
-  post.text = 'hello world';
+  let categoryRepository = connection.getRepository(Category);
 
-  const postRepository = connection.getRepository(Post);
-  await postRepository.save(post);
+  const category1 = new Category();
+  category1.name = 'category #1';
+  const mainCategory = new Category();
 
-  const posts = await connection.createQueryBuilder()
-    .from('post', 'Post')
-    .addSelect('Post.id', 'id_1')
-    .addSelect('Post.id', 'id_2')
-    .getRawMany();
+  mainCategory.name = 'main category';
+  mainCategory.parent = category1;
 
-  console.log('posts?', posts);
+  await categoryRepository.save(mainCategory);
+
+  const categories = categoryRepository.find();
+  let promises = [];
+  connection.entityMetadatas.forEach(entityMetadata => {
+    entityMetadata.relations.forEach(relation => {
+      promises.push(connection.relationIdLoader.loadManyToManyRelationIdsAndGroup(relation, categories));
+    })
+  });
+  const result = await Promise.all(promises);
+  console.log(JSON.stringify(result, null, 2));
+
+  await connection.dropDatabase();
 });
